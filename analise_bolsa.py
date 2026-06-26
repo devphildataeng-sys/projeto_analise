@@ -1,34 +1,58 @@
-import yfinance as yf
+# IMPORTANDO AS BIBLIOTECAS NECESSÁRIAS
 import pandas as pd
+import numpy as np
+import yfinance as yf
 
-print("=========================================")
-print("INICIANDO MÓDULO DE EXTRAÇÃO DOS DADOS...")
-print("=========================================")
+print("\n*****************************************\nANÁLISE DE TENDÊNCIA E VOLATILIDADE\n*****************************************")
 
-# 1. Escolhendo a ação (Ticker) e definindo o período de análise
-# Vamos puxar o histórico de 1 ano da Apple (AAPL)
 ticker = "AAPL"
-print(f"Buscando dados históricos para: {ticker}...")
-dados_acao = yf.Ticker(ticker)
+print(f"Buscando o histórico dos últimos 3 anos para: {ticker}...")
+dados_da_acao = yf.Ticker(ticker)
+historico = dados_da_acao.history(period="3y")
+print(f"Dados coletados com Sucesso!\n")
 
-# Extrai o histórico diário de 1 ano
-historico = dados_acao.history(period="1y")
+#IDENTIFICANDO O ANO E CALCULANDOA VOLATILIDADE EM %
 
-print("Dados extraídos com sucesso!\n")
+historico['ANO'] = historico.index.year
 
-# 2. Mostrando a estrutura inicial dos dados
-print("Primeiras 5 linhas da tabela de dados extraída:")
-print(historico[['Open', 'High', 'Low', 'Close', 'Volume']].head())
-print("-" * 50)
+historico['DIARIO'] = historico['Close'].pct_change()*100
 
-# 3. CALCULANDO AS MÉTRICAS DO NÍVEL
-print("EXECUTANDO ANÁLISE ESTATÍSTICA DESCRITIVA:")
+print("\n*****************************************\nRESULTADOS ANUAIS COMPLETOS\n*****************************************")
 
-preco_maximo = historico['High'].max()
-preco_minimo = historico['Low'].min()
-media_fechamento = historico['Close'].mean()
+#LOOP PELOS ANOS SELECIONADOS
 
-print(f"Preço Mais Alto no Ano:  USD {preco_maximo:.2f}")
-print(f"Preço Mais Baixo no Ano: USD {preco_minimo:.2f}")
-print(f"Preço Médio de Fechamento: USD {media_fechamento:.2f}")
-print("=========================================")
+for ano in sorted(historico['ANO'].unique()):
+    dados_por_ano = historico[historico['ANO'] == ano]
+
+#ANÁLISE DE TENDÊNCIA(VALOR E DATA)
+
+    maior_valor = dados_por_ano['High'].max()
+    menor_valor = dados_por_ano['Low'].min()
+
+    data_maior_valor = dados_por_ano['High'].idxmax().strftime('%d/%m/%Y')
+    data_menor_valor = dados_por_ano['Low'] .idxmin().strftime('%d/%m/%Y')
+
+    media_fechamento_anual = dados_por_ano['Close'].mean()
+
+#ANÁLISE DE VOLATILIDADE(VALOR E DATA)
+
+    retorno = dados_por_ano['DIARIO'].dropna()
+    volat_anual = retorno.std() * np.sqrt(252)
+
+    maior_alta = retorno.max()
+    maior_queda = retorno.min()
+
+    data_maior_alta = retorno.idxmax().strftime('%d/%m/%Y')
+    data_maior_queda = retorno.idxmin().strftime('%d/%m/%Y')
+
+#MOSTRANDO OS RESULTADOS ANUAIS NA TELA
+
+    print(f"""ANO:{ano}
+        Maior Valor: {maior_valor:.2f} em {data_maior_valor}
+        Menor Valor: {menor_valor:.2f} em {data_menor_valor}
+        Média de Fechamento: USD {media_fechamento_anual:.2f}
+        Volatilidade Anualizada: {volat_anual:.2f}%
+        Maior Alta Diária: {maior_alta:.2f} em {data_maior_alta}
+        Maior Queda Diária: {maior_queda:.2f} em {data_maior_queda}
+_____________________________________________________________________
+    """)
